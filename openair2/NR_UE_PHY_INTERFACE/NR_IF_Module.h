@@ -42,6 +42,7 @@
 #include "NR_Packet_Drop.h"
 #include "nfapi/open-nFAPI/nfapi/public_inc/sidelink_nr_ue_interface.h"
 
+
 typedef enum sl_sidelink_slot_type {
 
   SIDELINK_SLOT_TYPE_NONE = 0,
@@ -50,6 +51,17 @@ typedef enum sl_sidelink_slot_type {
   SIDELINK_SLOT_TYPE_BOTH
 
 } sl_sidelink_slot_type_t;
+
+extern queue_t nr_rach_ind_queue;
+extern queue_t nr_rx_ind_queue;
+extern queue_t nr_crc_ind_queue;
+extern queue_t nr_uci_ind_queue;
+extern queue_t nr_sfn_slot_queue;
+extern queue_t nr_chan_param_queue;
+extern queue_t nr_dl_tti_req_queue;
+extern queue_t nr_tx_req_queue;
+extern queue_t nr_ul_dci_req_queue;
+extern queue_t nr_ul_tti_req_queue;
 
 extern slot_rnti_mcs_s slot_rnti_mcs[NUM_NFAPI_SLOT];
 
