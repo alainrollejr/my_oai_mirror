@@ -371,7 +371,6 @@ int nr_dlsch_encoding(PHY_VARS_gNB *gNB,
                       harq->unav_res,
                       rel15->qamModOrder[0],
                       rel15->nrOfLayers);
-    int r_offset = 0;
     for (int r = 0; r < impp.n_segments; r++) {
       impp.E_cb[r] = nr_get_E(impp.G, impp.n_segments, impp.Qm, rel15->nrOfLayers, r);
     }
