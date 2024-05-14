@@ -181,9 +181,27 @@ void init_RA(NR_UE_MAC_INST_t *mac,
       break;
   }
 
-  if (nr_rach_ConfigCommon->ext1) {
-    if (nr_rach_ConfigCommon->ext1->ra_PrioritizationForAccessIdentity_r16){
+  if (ra->ra_type == RA_2_STEP) {
+    if (nr_rach_ConfigCommon->ext1 && nr_rach_ConfigCommon->ext1->ra_PrioritizationForAccessIdentity_r16) {
       LOG_D(MAC, "Missing implementation for Access Identity initialization procedures\n");
+    }
+    // Perform initialization of variables specific to Random Access type as specified in clause 5.1.1a of TS 38.321
+    NR_RACH_ConfigGenericTwoStepRA_r16_t nr_ra_ConfigGenericTwoStepRA_r16 =
+        mac->current_UL_BWP->msgA_ConfigCommon_r16->rach_ConfigCommonTwoStepRA_r16.rach_ConfigGenericTwoStepRA_r16;
+    // Takes the value of 2-Step RA variable
+    if (nr_ra_ConfigGenericTwoStepRA_r16.msgA_PreamblePowerRampingStep_r16) {
+      prach_resources->RA_PREAMBLE_POWER_RAMPING_STEP = *nr_ra_ConfigGenericTwoStepRA_r16.msgA_PreamblePowerRampingStep_r16;
+    } else {
+      // If 2-Step variable does not exist, it takes the value of 4-Step RA variable
+      prach_resources->RA_PREAMBLE_POWER_RAMPING_STEP = nr_rach_ConfigCommon->rach_ConfigGeneric.powerRampingStep;
+    }
+    prach_resources->RA_SCALING_FACTOR_BI = 1;
+    // Takes the value of 2-Step RA variable
+    if (nr_ra_ConfigGenericTwoStepRA_r16.preambleTransMax_r16) {
+      ra->preambleTransMax = (int)*nr_ra_ConfigGenericTwoStepRA_r16.preambleTransMax_r16;
+    } else {
+      // If 2-Step variable does not exist, it takes the value of 4-Step RA variable
+      ra->preambleTransMax = (int)nr_rach_ConfigCommon->rach_ConfigGeneric.preambleTransMax;
     }
   }
 }
@@ -647,7 +665,7 @@ static uint8_t *fill_msg3_pdu_from_rlc(NR_UE_MAC_INST_t *mac, uint8_t *pdu, int 
   return pdu;
 }
 
-void nr_get_msg3_payload(NR_UE_MAC_INST_t *mac, uint8_t *buf, int TBS_max)
+void nr_get_Msg3_MsgA_PUSCH_payload(NR_UE_MAC_INST_t *mac, uint8_t *buf, int TBS_max)
 {
   RA_config_t *ra = &mac->ra;
 
@@ -660,7 +678,7 @@ void nr_get_msg3_payload(NR_UE_MAC_INST_t *mac, uint8_t *buf, int TBS_max)
   uint8_t *pdu = buf;
   if (ra->msg3_C_RNTI)
     pdu = fill_msg3_crnti_pdu(ra, pdu, mac->crnti);
-  else 
+  else
     pdu = fill_msg3_pdu_from_rlc(mac, pdu, TBS_max);
 
   AssertFatal(TBS_max >= pdu - buf, "Allocated resources are not enough for Msg3!\n");
@@ -695,12 +713,25 @@ void nr_ue_get_rach(NR_UE_MAC_INST_t *mac, int CC_id, frame_t frame, uint8_t gNB
 
   // Delay init RA procedure to allow the convergence of the IIR filter on PRACH noise measurements at gNB side
   if (ra->ra_state == nrRA_UE_IDLE) {
-    if ((mac->first_sync_frame > -1 || get_softmodem_params()->do_ra || get_softmodem_params()->nsa) &&
-       ((MAX_FRAME_NUMBER + frame - mac->first_sync_frame) % MAX_FRAME_NUMBER) > 150) {
-      ra->ra_state = nrRA_GENERATE_PREAMBLE;
-    } else {
-      LOG_D(NR_MAC,"PRACH Condition not met: ra state %d, frame %d, sync_frame %d\n", ra->ra_state, frame, mac->first_sync_frame);
-      return;
+    LOG_D(NR_MAC,
+          "ra->ra_state %d frame %d mac->first_sync_frame %d xxx %d",
+          ra->ra_state,
+          frame,
+          mac->first_sync_frame,
+          ((MAX_FRAME_NUMBER + frame - mac->first_sync_frame) % MAX_FRAME_NUMBER) > 10);
+    if (ra->ra_state < nrRA_GENERATE_PREAMBLE) {
+      if ((mac->first_sync_frame > -1 || get_softmodem_params()->do_ra || get_softmodem_params()->nsa)
+          && ((MAX_FRAME_NUMBER + frame - mac->first_sync_frame) % MAX_FRAME_NUMBER) > 150) {
+        ra->ra_state = nrRA_GENERATE_PREAMBLE;
+        LOG_I(NR_MAC, "PRACH Condition met: ra state %d, frame %d, sync_frame %d\n", ra->ra_state, frame, mac->first_sync_frame);
+      } else {
+        LOG_I(NR_MAC,
+              "PRACH Condition not met: ra state %d, frame %d, sync_frame %d\n",
+              ra->ra_state,
+              frame,
+              mac->first_sync_frame);
+        return;
+      }
     }
   }
 
@@ -794,19 +825,55 @@ void nr_ue_get_rach(NR_UE_MAC_INST_t *mac, int CC_id, frame_t frame, uint8_t gNB
     nr_ue_contention_resolution(mac, CC_id, frame, nr_slot_tx, prach_resources);
   }
 }
+void nr_get_RA_window_2Step(NR_UE_MAC_INST_t *mac)
+{
+  RA_config_t *ra = &mac->ra;
+  int ra_ResponseWindow = (int)*mac->current_UL_BWP->msgA_ConfigCommon_r16->rach_ConfigCommonTwoStepRA_r16
+                              .rach_ConfigGenericTwoStepRA_r16.msgB_ResponseWindow_r16;
+  switch (ra_ResponseWindow) {
+    case NR_RACH_ConfigGenericTwoStepRA_r16__msgB_ResponseWindow_r16_sl1:
+      ra->RA_window_cnt += 1;
+      break;
+    case NR_RACH_ConfigGenericTwoStepRA_r16__msgB_ResponseWindow_r16_sl2:
+      ra->RA_window_cnt += 2;
+      break;
+    case NR_RACH_ConfigGenericTwoStepRA_r16__msgB_ResponseWindow_r16_sl4:
+      ra->RA_window_cnt += 4;
+      break;
+    case NR_RACH_ConfigGenericTwoStepRA_r16__msgB_ResponseWindow_r16_sl8:
+      ra->RA_window_cnt += 8;
+      break;
+    case NR_RACH_ConfigGenericTwoStepRA_r16__msgB_ResponseWindow_r16_sl10:
+      ra->RA_window_cnt += 10;
+      break;
+    case NR_RACH_ConfigGenericTwoStepRA_r16__msgB_ResponseWindow_r16_sl20:
+      ra->RA_window_cnt += 20;
+      break;
+    case NR_RACH_ConfigGenericTwoStepRA_r16__msgB_ResponseWindow_r16_sl40:
+      ra->RA_window_cnt += 40;
+      break;
+    case NR_RACH_ConfigGenericTwoStepRA_r16__msgB_ResponseWindow_r16_sl80:
+      ra->RA_window_cnt += 80;
+      break;
+    case NR_RACH_ConfigGenericTwoStepRA_r16__msgB_ResponseWindow_r16_sl160:
+      ra->RA_window_cnt += 160;
+      break;
+    case NR_RACH_ConfigGenericTwoStepRA_r16__msgB_ResponseWindow_r16_sl320:
+      ra->RA_window_cnt += 360;
+      break;
+  }
+}
 
-void nr_get_RA_window(NR_UE_MAC_INST_t *mac)
+void nr_get_RA_window_4Step(NR_UE_MAC_INST_t *mac)
 {
   RA_config_t *ra = &mac->ra;
   NR_RACH_ConfigCommon_t *setup = mac->current_UL_BWP->rach_ConfigCommon;
   AssertFatal(&setup->rach_ConfigGeneric != NULL, "In %s: FATAL! rach_ConfigGeneric is NULL...\n", __FUNCTION__);
   NR_RACH_ConfigGeneric_t *rach_ConfigGeneric = &setup->rach_ConfigGeneric;
- 
-  int ra_ResponseWindow = rach_ConfigGeneric->ra_ResponseWindow;
-  int mu = mac->current_DL_BWP->scs;
 
+  int mu = mac->current_UL_BWP->scs;
   ra->RA_window_cnt = ra->RA_offset * nr_slots_per_frame[mu]; // taking into account the 2 frames gap introduced by OAI gNB
-
+  int ra_ResponseWindow = rach_ConfigGeneric->ra_ResponseWindow;
   switch (ra_ResponseWindow) {
     case NR_RACH_ConfigGeneric__ra_ResponseWindow_sl1:
       ra->RA_window_cnt += 1;
@@ -835,6 +902,18 @@ void nr_get_RA_window(NR_UE_MAC_INST_t *mac)
   }
 }
 
+void nr_get_RA_window(NR_UE_MAC_INST_t *mac)
+{
+  RA_config_t *ra = &mac->ra;
+
+  if (ra->ra_type == RA_2_STEP) {
+    // Resetting RA window
+    nr_get_RA_window_2Step(mac);
+  } else {
+    nr_get_RA_window_4Step(mac);
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////
 /////////* Random Access Contention Resolution (5.1.35 TS 38.321) */////////
 ////////////////////////////////////////////////////////////////////////////
@@ -850,7 +929,7 @@ void nr_ue_contention_resolution(NR_UE_MAC_INST_t *mac, int cc_id, frame_t frame
     ra->t_crnti = 0;
     nr_timer_stop(&ra->contention_resolution_timer);
     // Signal PHY to quit RA procedure
-    LOG_E(MAC, "[UE %d] CB-RA: Contention resolution timer has expired, RA procedure has failed...\n", mac->ue_id);
+    LOG_E(MAC, "[UE %d] 4-Step CBRA: Contention resolution timer has expired, RA procedure has failed...\n", mac->ue_id);
     nr_ra_failed(mac, cc_id, prach_resources, frame, slot);
   }
 }
@@ -864,14 +943,18 @@ void nr_ra_succeeded(NR_UE_MAC_INST_t *mac, const uint8_t gNB_index, const frame
   RA_config_t *ra = &mac->ra;
 
   if (ra->cfra) {
-    LOG_I(MAC, "[UE %d][%d.%d][RAPROC] RA procedure succeeded. CF-RA: RAR successfully received.\n", mac->ue_id, frame, slot);
+    LOG_I(MAC, "[UE %d][%d.%d][RAPROC] RA procedure succeeded. CFRA: RAR successfully received.\n", mac->ue_id, frame, slot);
     ra->RA_window_cnt = -1;
   } else {
-    LOG_A(MAC, "[UE %d][%d.%d][RAPROC] RA procedure succeeded. CB-RA: Contention Resolution is successful.\n", mac->ue_id, frame, slot);
+    LOG_A(MAC,
+          "[UE %d][%d.%d][RAPROC] 4-Step RA procedure succeeded. CBRA: Contention Resolution is successful.\n",
+          mac->ue_id,
+          frame,
+          slot);
     nr_timer_stop(&ra->contention_resolution_timer);
     mac->crnti = ra->t_crnti;
     ra->t_crnti = 0;
-    LOG_D(MAC, "[UE %d][%d.%d] CB-RA: cleared contention resolution timer...\n", mac->ue_id, frame, slot);
+    LOG_D(MAC, "[UE %d][%d.%d] CBRA: cleared contention resolution timer...\n", mac->ue_id, frame, slot);
   }
 
   LOG_D(MAC, "[UE %d] clearing RA_active flag...\n", mac->ue_id);
@@ -921,7 +1004,6 @@ void nr_ra_failed(NR_UE_MAC_INST_t *mac, uint8_t CC_id, NR_PRACH_RESOURCES_t *pr
     prach_resources->ra_PREAMBLE_RECEIVED_TARGET_POWER = nr_get_Po_NOMINAL_PUSCH(mac, prach_resources, CC_id);
 
   } else {
-    // Resetting RA window
     nr_get_RA_window(mac);
   }
 }
