@@ -630,6 +630,76 @@ int nr_fill_successrar(const NR_UE_sched_ctrl_t *ue_sched_ctl,
   return mac_pdu_length;
 }
 
+int nr_fill_successrar(const NR_UE_sched_ctrl_t *ue_sched_ctl,
+                       rnti_t crnti,
+                       const unsigned char *ue_cont_res_id,
+                       uint8_t resource_indicator,
+                       uint8_t timing_indicator,
+                       unsigned char *mac_pdu,
+                       int mac_pdu_length)
+{
+  LOG_D(NR_MAC, "mac_pdu_length = %d\n", mac_pdu_length);
+  int timing_advance_cmd = ue_sched_ctl->ta_update;
+  // TS 38.321 - Figure 6.1.5a-1: BI MAC subheader
+  NR_RA_HEADER_BI_MSGB *bi = (NR_RA_HEADER_BI_MSGB *)&mac_pdu[mac_pdu_length];
+  mac_pdu_length += sizeof(NR_RA_HEADER_BI_MSGB);
+
+  bi->E = 1;
+  bi->T1 = 0;
+  bi->T2 = 0;
+  bi->R = 0;
+  bi->BI = 0; // BI = 0, 5ms
+
+  // TS 38.321 - Figure 6.1.5a-3: SuccessRAR MAC subheader
+  NR_RA_HEADER_SUCCESS_RAR_MSGB *SUCESS_RAR_header = (NR_RA_HEADER_SUCCESS_RAR_MSGB *)&mac_pdu[mac_pdu_length];
+  mac_pdu_length += sizeof(NR_RA_HEADER_SUCCESS_RAR_MSGB);
+
+  SUCESS_RAR_header->E = 0;
+  SUCESS_RAR_header->T1 = 0;
+  SUCESS_RAR_header->T2 = 1;
+  SUCESS_RAR_header->S = 0;
+  SUCESS_RAR_header->R = 0;
+
+  // TS 38.321 - Figure 6.2.3a-2: successRAR
+  NR_MAC_SUCCESS_RAR *successRAR = (NR_MAC_SUCCESS_RAR *)&mac_pdu[mac_pdu_length];
+  mac_pdu_length += sizeof(NR_MAC_SUCCESS_RAR);
+
+  successRAR->CONT_RES_1 = ue_cont_res_id[0];
+  successRAR->CONT_RES_2 = ue_cont_res_id[1];
+  successRAR->CONT_RES_3 = ue_cont_res_id[2];
+  successRAR->CONT_RES_4 = ue_cont_res_id[3];
+  successRAR->CONT_RES_5 = ue_cont_res_id[4];
+  successRAR->CONT_RES_6 = ue_cont_res_id[5];
+  successRAR->R = 0;
+  successRAR->CH_ACESS_CPEXT = 1;
+  successRAR->TPC = ue_sched_ctl->tpc0;
+  successRAR->HARQ_FTI = timing_indicator;
+  successRAR->PUCCH_RI = resource_indicator;
+  successRAR->TA1 = (uint8_t)(timing_advance_cmd >> 8); // 4 MSBs of timing advance;
+  successRAR->TA2 = (uint8_t)(timing_advance_cmd & 0xff); // 8 LSBs of timing advance;
+  successRAR->CRNTI_1 = (uint8_t)(crnti >> 8); // 8 MSBs of rnti
+  successRAR->CRNTI_2 = (uint8_t)(crnti & 0xff); // 8 LSBs of rnti
+
+  LOG_D(NR_MAC,
+        "successRAR: Contention Resolution ID 0x%02x%02x%02x%02x%02x%02x R 0x%01x CH_ACESS_CPEXT 0x%02x TPC 0x%02x HARQ_FTI 0x%03x "
+        "PUCCH_RI 0x%04x TA 0x%012x CRNTI 0x%04x\n",
+        successRAR->CONT_RES_1,
+        successRAR->CONT_RES_2,
+        successRAR->CONT_RES_3,
+        successRAR->CONT_RES_4,
+        successRAR->CONT_RES_5,
+        successRAR->CONT_RES_6,
+        successRAR->R,
+        successRAR->CH_ACESS_CPEXT,
+        successRAR->TPC,
+        successRAR->HARQ_FTI,
+        successRAR->PUCCH_RI,
+        timing_advance_cmd,
+        crnti);
+  LOG_D(NR_MAC, "mac_pdu_length = %d\n", mac_pdu_length);
+  return mac_pdu_length;
+}
+
 static bool ra_contains_preamble(const NR_RA_t *ra, uint16_t preamble_index)
 {
   for (int j = 0; j < ra->preambles.num_preambles; j++) {
