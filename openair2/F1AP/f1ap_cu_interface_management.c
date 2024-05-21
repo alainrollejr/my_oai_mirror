@@ -42,7 +42,9 @@ int CU_send_RESET(sctp_assoc_t assoc_id, f1ap_reset_t *reset)
 
 int CU_handle_RESET_ACKNOWLEDGE(instance_t instance, sctp_assoc_t assoc_id, uint32_t stream, F1AP_F1AP_PDU_t *pdu)
 {
-  AssertFatal(1==0,"Not implemented yet\n");
+  LOG_D(F1AP, "CU_handle_RESET_ACKNOWLEDGE\n");
+  (void) pdu;
+  return 0;
 }
 
 int CU_handle_RESET(instance_t instance, sctp_assoc_t assoc_id, uint32_t stream, F1AP_F1AP_PDU_t *pdu)
