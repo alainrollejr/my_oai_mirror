@@ -324,6 +324,20 @@ static F1AP_GNB_DU_System_Information_t *encode_system_info(const f1ap_gnb_du_sy
 // SETUP REQUEST
 int DU_send_F1_SETUP_REQUEST(sctp_assoc_t assoc_id, const f1ap_setup_req_t *setup_req)
 {
+  LOG_D(F1AP, "DU_send_F1_SETUP_REQUEST\n");
+  // NOTE: before sending F1 Setup, we should initialize the UE states.
+  // This is to handle cases when DU loses the existing SCTP connection,
+  // and reestablishes a new connection to either a new CU or the same CU.
+  // This triggers a new F1 Setup Request from DU to CU as per the specs.
+  // Reinitializing the UE states is necessary to avoid any inconsistent states
+  // between DU and CU.
+
+  // TS38.473 [Sec 8.2.3.1]: "This procedure also re-initialises the F1AP UE-related 
+  // contexts (if any) and erases all related signalling connections
+  // in the two nodes like a Reset procedure would do."
+  LOG_D(F1AP, "Clearing the DU's UE states before , if any.\n");
+  du_clear_all_ue_states();
+
   F1AP_F1AP_PDU_t       pdu= {0};
   uint8_t  *buffer;
   uint32_t  len;
