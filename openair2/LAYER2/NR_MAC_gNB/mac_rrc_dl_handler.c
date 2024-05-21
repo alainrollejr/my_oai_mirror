@@ -105,10 +105,43 @@ static bool check_plmn_identity(const f1ap_plmn_t *check_plmn, const f1ap_plmn_t
   return plmn->mcc == check_plmn->mcc && plmn->mnc_digit_length == check_plmn->mnc_digit_length && plmn->mnc == check_plmn->mnc;
 }
 
+void du_clear_all_ue_states()
+{
+  gNB_MAC_INST *mac = RC.nrmac[0];
+  NR_SCHED_LOCK(&mac->sched_lock);
+
+  NR_UE_info_t **UE_list = (&mac->UE_info)->list;
+  NR_UE_info_t *UE = *UE_list;
+
+  instance_t f1inst = get_f1_gtp_instance();
+
+  while (UE != NULL) {
+    int rnti = UE->rnti;
+    nr_mac_release_ue(mac, rnti);
+    newGtpuDeleteAllTunnels(f1inst, rnti);
+    UE_list = (&mac->UE_info)->list;
+    UE = *UE_list;
+  }
+  NR_SCHED_UNLOCK(&mac->sched_lock);
+}
+
 void f1_reset_cu_initiated(const f1ap_reset_t *reset)
 {
-  (void) reset;
-  AssertFatal(false, "%s() not implemented yet\n", __func__);
+  LOG_I(MAC, "F1 Reset initiated by CU\n");
+
+  f1ap_reset_ack_t ack;
+  if(reset->reset_type == F1AP_RESET_ALL) {
+    du_clear_all_ue_states();
+    ack = (f1ap_reset_ack_t) {
+      .transaction_id = reset->transaction_id
+    };
+  } else {  
+    // reset->reset_type == F1AP_RESET_PART_OF_F1_INTERFACE
+    AssertFatal(1==0, "Not implemented yet\n");
+  }
+
+  gNB_MAC_INST *mac = RC.nrmac[0];
+  mac->mac_rrc.f1_reset_acknowledge(&ack);
 }
 
 void f1_reset_acknowledge_du_initiated(const f1ap_reset_ack_t *ack)
