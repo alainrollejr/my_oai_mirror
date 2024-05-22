@@ -529,15 +529,15 @@ void handle_nr_ul_harq(const int CC_idP,
   int8_t harq_pid = sched_ctrl->feedback_ul_harq.head;
   LOG_D(NR_MAC, "Comparing crc_pdu->harq_id vs feedback harq_pid = %d %d\n",crc_pdu->harq_id, harq_pid);
   while (crc_pdu->harq_id != harq_pid || harq_pid < 0) {
+    if (harq_pid < 0) {
+      NR_SCHED_UNLOCK(&nrmac->sched_lock);
+      return;
+    }
     LOG_W(NR_MAC,
           "Unexpected ULSCH HARQ PID %d (have %d) for RNTI 0x%04x (ignore this warning for RA)\n",
           crc_pdu->harq_id,
           harq_pid,
           crc_pdu->rnti);
-    if (harq_pid < 0) {
-      NR_SCHED_UNLOCK(&nrmac->sched_lock);
-      return;
-    }
 
     remove_front_nr_list(&sched_ctrl->feedback_ul_harq);
     sched_ctrl->ul_harq_processes[harq_pid].is_waiting = false;
