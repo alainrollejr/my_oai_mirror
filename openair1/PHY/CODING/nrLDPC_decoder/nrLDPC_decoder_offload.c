@@ -366,10 +366,9 @@ static int init_op_data_objs_dec(struct rte_bbdev_op_data *bufs,
                                  enum op_data_type op_type,
                                  uint16_t min_alignment)
 {
-  uint32_t data_len;
   bool large_input = false;
   for (int i = 0; i < n; ++i) {
-    data_len = offloadParams->E_cb[i];
+    uint32_t data_len = offloadParams->perCB[i].E_cb;
     char *data;
     struct rte_mbuf *m_head = rte_pktmbuf_alloc(mbuf_pool);
     TEST_ASSERT_NOT_NULL(m_head, "Not enough mbufs in %d data type mbuf pool (needed %u, available %u)",
@@ -419,10 +418,9 @@ static int init_op_data_objs_enc(struct rte_bbdev_op_data *bufs,
                                  enum op_data_type op_type,
                                  uint16_t min_alignment)
 {
-  uint32_t data_len;
   bool large_input = false;
   for (int i = 0; i < n; ++i) {
-    data_len = offloadParams->Kr;
+    uint32_t data_len = offloadParams->Kr;
     char *data;
     struct rte_mbuf *m_head = rte_pktmbuf_alloc(mbuf_pool);
     TEST_ASSERT_NOT_NULL(m_head, "Not enough mbufs in %d data type mbuf pool (needed %u, available %u)",
