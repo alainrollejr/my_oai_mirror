@@ -247,7 +247,7 @@ int decode_offload(PHY_VARS_gNB *phy_vars_gNB,
 
   for (int r = 0; r < harq_process->C; r++) {
     decParams->E_cb[r] = nr_get_E(G, harq_process->C, decParams->Qm, pusch_pdu->nrOfLayers, r);
-    memcpy(&z_ol[offset], ulsch_llr + r_offset, decParams->E_cb[r] * sizeof(short));
+    memcpy(&z_ol[offset], ulsch_llr + r_offset, decParams->E_cb[r] * sizeof(*z_ol));
     simde__m128i *pv_ol128 = (simde__m128i *)&z_ol[offset];
     simde__m128i *pl_ol128 = (simde__m128i *)&l_ol[offset];
     for (int i = 0, j = 0; j < ((kc * harq_process->Z) >> 4) + 1; i += 2, j++) {
