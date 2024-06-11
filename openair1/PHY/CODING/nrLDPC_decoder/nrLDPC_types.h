@@ -79,6 +79,15 @@ typedef enum nrLDPC_outMode {
 } e_nrLDPC_outMode;
 
 /**
+   Structure containing LDPC parameters per CB
+*/
+typedef struct nrLDPC_params_per_cb {
+    uint32_t E_cb;
+    uint8_t status_cb;
+    uint8_t *p_status_cb;
+}nrLDPC_params_per_cb_t;
+
+/**
    Structure containing LDPC decoder parameters.
  */
 typedef struct nrLDPC_dec_params {
@@ -90,30 +99,29 @@ typedef struct nrLDPC_dec_params {
     uint8_t rv;
     uint8_t numMaxIter; /**< Maximum number of iterations */
     int E;
-    uint32_t E_cb[NR_LDPC_MAX_NUM_CB];
     e_nrLDPC_outMode outMode; /**< Output format */
     int crc_type;
     int (*check_crc)(uint8_t* decoded_bytes, uint32_t n, uint8_t crc_type);
     uint8_t setCombIn;
-    uint8_t setCombIn_cb[NR_LDPC_MAX_NUM_CB];
-    uint8_t status_cb[NR_LDPC_MAX_NUM_CB];
+    nrLDPC_params_per_cb_t perCB[NR_LDPC_MAX_NUM_CB];
 } t_nrLDPC_dec_params;
 
+/**
+   Structure containing LDPC offload parameters.
+ */
 typedef struct nrLDPCoffload_params {
     uint8_t BG; /**< Base graph */
     uint16_t Z;
     uint16_t Kr;
     uint8_t rv;
     uint32_t E;
-    uint32_t E_cb[NR_LDPC_MAX_NUM_CB];
     uint16_t n_cb;
     uint16_t F; /**< Filler bits */
     uint8_t Qm; /**< Modulation */
     uint8_t C;
     uint8_t numMaxIter;
     uint8_t setCombIn;
-    uint8_t setCombIn_cb[NR_LDPC_MAX_NUM_CB];
-    uint8_t *status_cb[NR_LDPC_MAX_NUM_CB];
+    nrLDPC_params_per_cb_t perCB[NR_LDPC_MAX_NUM_CB];
 } t_nrLDPCoffload_params;
 
 /**

@@ -513,7 +513,7 @@ set_ldpc_dec_op(struct rte_bbdev_dec_op **ops,
 {
   unsigned int i;
   for (i = 0; i < p_offloadParams->C; ++i) {
-    ops[i]->ldpc_dec.cb_params.e = p_offloadParams->E_cb[i];
+    ops[i]->ldpc_dec.cb_params.e = p_offloadParams->perCB[i].E_cb;
     ops[i]->ldpc_dec.basegraph = p_offloadParams->BG;
     ops[i]->ldpc_dec.z_c = p_offloadParams->Z;
     ops[i]->ldpc_dec.q_m = p_offloadParams->Qm;
@@ -556,7 +556,7 @@ static void set_ldpc_enc_op(struct rte_bbdev_enc_op **ops,
                             t_nrLDPCoffload_params *p_offloadParams)
 {
   for (int i = 0; i < p_offloadParams->C; ++i) {
-    ops[i]->ldpc_enc.cb_params.e = p_offloadParams->E_cb[i];
+    ops[i]->ldpc_enc.cb_params.e = p_offloadParams->perCB[i].E_cb;
     ops[i]->ldpc_enc.basegraph = p_offloadParams->BG;
     ops[i]->ldpc_enc.z_c = p_offloadParams->Z;
     ops[i]->ldpc_enc.q_m = p_offloadParams->Qm;
@@ -597,7 +597,7 @@ static int retrieve_ldpc_dec_op(struct rte_bbdev_dec_op **ops,
 static int retrieve_ldpc_enc_op(struct rte_bbdev_enc_op **ops,
                                 const uint16_t n,
                                 uint8_t *p_out,
-                                uint32_t *E)
+                                nrLDPC_params_per_cb_t *perCB)
 {
   struct rte_bbdev_op_data *output;
   struct rte_mbuf *m;
@@ -614,7 +614,7 @@ static int retrieve_ldpc_enc_op(struct rte_bbdev_enc_op **ops,
     for (int byte = 0; byte < data_len; byte++)
       for (int bit = 0; bit < 8; bit++)
         out[byte * 8 + bit] = (data[m->data_off + byte] >> (7 - bit)) & 1;
-    offset += E[i];
+    offset += perCB[i].E_cb;
     rte_pktmbuf_free(ops[i]->ldpc_enc.output.data);
     rte_pktmbuf_free(ops[i]->ldpc_enc.input.data);
   }
@@ -749,7 +749,7 @@ static int pmd_lcore_ldpc_enc(void *arg)
     DevAssert(time_out <= TIME_OUT_POLL);
   }
 
-  ret = retrieve_ldpc_enc_op(ops_deq, num_segments, p_out, tp->p_offloadParams->E_cb);
+  ret = retrieve_ldpc_enc_op(ops_deq, num_segments, p_out, tp->p_offloadParams->perCB);
   TEST_ASSERT_SUCCESS(ret, "Validation failed!");
   rte_bbdev_enc_op_free_bulk(ops_enq, num_segments);
   return ret;
@@ -939,8 +939,8 @@ int32_t LDPCdecoder(struct nrLDPC_dec_params *p_decParams,
                                           .setCombIn = p_decParams->setCombIn};
 
   for (int r = 0; r < C; r++) {
-    offloadParams.E_cb[r] = p_decParams->E_cb[r];
-    offloadParams.status_cb[r] = &p_decParams->status_cb[r];
+    offloadParams.perCB[r].E_cb = p_decParams->perCB[r].E_cb;
+    offloadParams.perCB[r].p_status_cb = &(p_decParams->perCB[r].status_cb);
   }
   struct rte_bbdev_info info;
   int ret;
@@ -998,7 +998,7 @@ int32_t LDPCencoder(unsigned char **input, unsigned char **output, encoder_imple
                                           .C = impp->n_segments,
                                           .Kr = (impp->K - impp->F + 7) / 8};
   for (int r = 0; r < impp->n_segments; r++) {
-    offloadParams.E_cb[r] = impp->E_cb[r];
+    offloadParams.perCB[r].E_cb = impp->perCB[r].E_cb;
   }
   if (impp->Tbslbrm != 0){
     Nref = 3*impp->Tbslbrm/(2*impp->n_segments);

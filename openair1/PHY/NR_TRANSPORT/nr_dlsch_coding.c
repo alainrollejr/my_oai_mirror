@@ -372,7 +372,7 @@ int nr_dlsch_encoding(PHY_VARS_gNB *gNB,
                       rel15->qamModOrder[0],
                       rel15->nrOfLayers);
     for (int r = 0; r < impp.n_segments; r++) {
-      impp.E_cb[r] = nr_get_E(impp.G, impp.n_segments, impp.Qm, rel15->nrOfLayers, r);
+      impp.perCB[r].E_cb = nr_get_E(impp.G, impp.n_segments, impp.Qm, rel15->nrOfLayers, r);
     }
     ldpc_interface_offload.LDPCencoder(harq->c, &impp.output, &impp);
   } else {

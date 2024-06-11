@@ -246,15 +246,15 @@ int decode_offload(PHY_VARS_gNB *phy_vars_gNB,
     harq_process->processedSegments = 0;
 
   for (int r = 0; r < harq_process->C; r++) {
-    decParams->E_cb[r] = nr_get_E(G, harq_process->C, decParams->Qm, pusch_pdu->nrOfLayers, r);
-    memcpy(&z_ol[offset], ulsch_llr + r_offset, decParams->E_cb[r] * sizeof(*z_ol));
+    decParams->perCB[r].E_cb = nr_get_E(G, harq_process->C, decParams->Qm, pusch_pdu->nrOfLayers, r);
+    memcpy(&z_ol[offset], ulsch_llr + r_offset, decParams->perCB[r].E_cb * sizeof(*z_ol));
     simde__m128i *pv_ol128 = (simde__m128i *)&z_ol[offset];
     simde__m128i *pl_ol128 = (simde__m128i *)&l_ol[offset];
     for (int i = 0, j = 0; j < ((kc * harq_process->Z) >> 4) + 1; i += 2, j++) {
       pl_ol128[j] = simde_mm_packs_epi16(pv_ol128[i], pv_ol128[i + 1]);
     }
     decParams->F = harq_process->F;
-    r_offset += decParams->E_cb[r];
+    r_offset += decParams->perCB[r].E_cb;
     offset += LDPC_MAX_CB_SIZE;
   }
 
@@ -268,7 +268,7 @@ int decode_offload(PHY_VARS_gNB *phy_vars_gNB,
 
   int offset_b = 0;
   for (int r = 0; r < harq_process->C; r++) {
-    if (decParams->status_cb[r] == 0 || harq_process->C == 1) {
+    if (decParams->perCB[r].status_cb == 0 || harq_process->C == 1) {
       memcpy(harq_process->b + offset_b, &p_outDec[offset_b], Kr_bytes - (harq_process->F >> 3) - ((harq_process->C > 1) ? 3 : 0));
       harq_process->processedSegments++;
     }
