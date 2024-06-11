@@ -12,10 +12,6 @@
 #include <rte_hexdump.h>
 #include <rte_log.h>
 
-#define TEST_SUCCESS    0
-#define TEST_FAILED     -1
-#define TEST_SKIPPED    1
-
 #define MAX_BURST 512U
 #define DEFAULT_BURST 32U
 #define DEFAULT_OPS 64U
@@ -29,46 +25,6 @@ enum op_data_type {
   DATA_HARQ_OUTPUT,
   DATA_NUM_TYPES,
 };
-
-#define TEST_ASSERT(cond, msg, ...) do {  \
-		if (!(cond)) {  \
-			printf("TestCase %s() line %d failed: " \
-				msg "\n", __func__, __LINE__, ##__VA_ARGS__); \
-			return TEST_FAILED;  \
-		} \
-} while (0)
-
-/* Compare two buffers (length in bytes) */
-#define TEST_ASSERT_BUFFERS_ARE_EQUAL(a, b, len, msg, ...) do { \
-	if (memcmp((a), (b), len)) { \
-		printf("TestCase %s() line %d failed: " \
-			msg "\n", __func__, __LINE__, ##__VA_ARGS__); \
-		rte_memdump(stdout, "Buffer A", (a), len); \
-		rte_memdump(stdout, "Buffer B", (b), len); \
-		return TEST_FAILED; \
-	} \
-} while (0)
-
-#define TEST_ASSERT_SUCCESS(val, msg, ...) do { \
-		typeof(val) _val = (val); \
-		if (!(_val == 0)) { \
-			printf("TestCase %s() line %d failed (err %d): " \
-				msg "\n", __func__, __LINE__, _val, \
-				##__VA_ARGS__); \
-			return TEST_FAILED; \
-		} \
-} while (0)
-
-#define TEST_ASSERT_FAIL(val, msg, ...) \
-	TEST_ASSERT_SUCCESS(!(val), msg, ##__VA_ARGS__)
-
-#define TEST_ASSERT_NOT_NULL(val, msg, ...) do { \
-		if ((val) == NULL) { \
-			printf("TestCase %s() line %d failed (null): " \
-				msg "\n", __func__, __LINE__, ##__VA_ARGS__); \
-			return TEST_FAILED;  \
-		} \
-} while (0)
 
 struct unit_test_case {
 	int (*setup)(void);
