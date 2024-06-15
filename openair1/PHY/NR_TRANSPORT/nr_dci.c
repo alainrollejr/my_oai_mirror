@@ -41,29 +41,16 @@
 //#define DEBUG_DCI
 //#define DEBUG_CHANNEL_CODING
 
-void nr_pdcch_scrambling(uint32_t *in,
+static void nr_pdcch_scrambling(uint32_t *in,
                          uint32_t size,
                          uint32_t Nid,
                          uint32_t scrambling_RNTI,
                          uint32_t *out) {
-  uint8_t reset;
-  uint32_t x1 = 0, x2 = 0, s = 0;
-  reset = 1;
-  x2 = (scrambling_RNTI<<16) + Nid;
-  LOG_D(NR_PHY_DCI, "PDCCH Scrambling x2 %x : scrambling_RNTI %x \n", x2, scrambling_RNTI);
-  for (int i=0; i<size; i++) {
-    if ((i&0x1f)==0) {
-      s = lte_gold_generic(&x1, &x2, reset);
-      reset = 0;
-
-      if (i) {
-        in++;
-        out++;
-      }
-    }
-
-    (*out) ^= ((((*in)>>(i&0x1f))&1) ^ ((s>>(i&0x1f))&1))<<(i&0x1f);
-  }
+  int roundedSz=((size+31)/32);
+  uint32_t *seq=gold_cache( (scrambling_RNTI<<16) + Nid, roundedSz);
+  LOG_D(NR_PHY_DCI, "PDCCH scrambling_RNTI %x \n", scrambling_RNTI);
+  for (int i=0; i<roundedSz; i++) 
+    out[i]=in[i] ^ seq[i]; 
 }
 
 void nr_generate_dci(PHY_VARS_gNB *gNB,
