@@ -38,7 +38,6 @@ int nr_prs_channel_estimation(uint8_t gNB_id,
                               uint8_t rep_num,
                               PHY_VARS_NR_UE *ue,
                               const UE_nr_rxtx_proc_t *proc,
-                              NR_DL_FRAME_PARMS *frame_params,
                               c16_t rxdataF[][ue->frame_parms.samples_per_slot_wCP]);
 
 /*!

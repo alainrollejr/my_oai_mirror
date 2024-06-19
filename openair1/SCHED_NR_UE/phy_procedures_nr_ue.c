@@ -931,7 +931,7 @@ int pbch_pdcch_processing(PHY_VARS_NR_UE *ue, const UE_nr_rxtx_proc_t *proc, nr_
           {
             nr_slot_fep(ue, fp, proc, (j % fp->symbols_per_slot), rxdataF, link_type_dl);
           }
-          nr_prs_channel_estimation(gNB_id, rsc_id, i, ue, proc, fp, rxdataF);
+          nr_prs_channel_estimation(gNB_id, rsc_id, i, ue, proc, rxdataF);
         }
       } // for i
     } // for rsc_id
