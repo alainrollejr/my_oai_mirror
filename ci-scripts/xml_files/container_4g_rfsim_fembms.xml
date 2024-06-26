@@ -72,7 +72,7 @@
         </testCase>
 
         <testCase id="030011">
-                <class>Iperf</class>
+                <class>Iperf2_Unidir</class>
                 <desc>Iperf UDP DL</desc>
                 <id>rfsim4g_ue_fembms</id>
                 <svr_id>rfsim4g_enb_fembms</svr_id>

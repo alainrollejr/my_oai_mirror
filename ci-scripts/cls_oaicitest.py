@@ -872,6 +872,42 @@ class OaiCiTest():
 			HTML.CreateHtmlTestRowQueue(self.iperf_args, 'KO', messages)
 			self.AutoTerminateUEandeNB(HTML,RAN,EPC,CONTAINERS)
 
+	def Iperf2_Unidir(self,HTML,RAN,EPC,CONTAINERS):
+		if self.ue_ids == [] or self.svr_id == None or len(self.ue_ids) != 1:
+			raise Exception("no module names in self.ue_ids or/and self.svr_id provided, multi UE scenario not supported")
+		ue = cls_module.Module_UE(self.ue_ids[0].strip())
+		svr = cls_module.Module_UE(self.svr_id)
+		ueIP = ue.getIP()
+		if not ueIP:
+			return (False, f"UE {ue.getName()} has no IP address")
+		svrIP = svr.getIP()
+		if not svrIP:
+			return (False, f"Iperf server {ue.getName()} has no IP address")
+		client_filename = f'iperf_client_{self.testCase_id}_{ue.getName()}.log'
+		server_filename = f'iperf_server_{self.testCase_id}_{ue.getName()}.log'
+		ymlPath = CONTAINERS.yamlPath[0].split('/')
+		logPath = f'../cmake_targets/log/{ymlPath[-1]}'
+		iperf_time = Iperf_ComputeTime(self.iperf_args)
+		target_bitrate, iperf_opt = Iperf_ComputeModifiedBW(0, 1, self.iperf_profile, self.iperf_args)
+		with cls_cmd.getConnection(ue.getHost()) as cmd_ue, cls_cmd.getConnection(EPC.IPAddress) as cmd_svr:
+			cmd_svr.run(f'rm /tmp/{server_filename}', reportNonZero=False)
+			cmd_ue.run(f'{ue.getCmdPrefix()} iperf -B {ueIP} -s -u -i1 >> /tmp/{server_filename} &', timeout=iperf_time*2.5)
+			cmd_svr.run(f'{svr.getCmdPrefix()} iperf -c {ueIP} -B {svrIP} {iperf_opt} -i1', timeout=iperf_time*2.5)
+			localPath = f'{os.getcwd()}'
+			cmd_ue.run(f'mkdir -p {localPath}/{logPath}')
+			cmd_ue.copyin(f'/tmp/{server_filename}', f'{localPath}/{logPath}/{server_filename}')
+			cmd_ue.copyin(f'/tmp/{server_filename}', f'{localPath}/{server_filename}')
+			success, msg = Iperf_analyzeV2UDP(server_filename, self.iperf_bitrate_threshold, self.iperf_packetloss_threshold, target_bitrate)
+		ue_header = f'UE {ue.getName()} ({ueIP})'
+		logging.info(f'\u001B[1;37;45m iperf result for {ue_header}\u001B[0m')
+		for l in msg.split('\n'):
+			logging.info(f'\u001B[1;35m	{l} \u001B[0m')
+		if success:
+			HTML.CreateHtmlTestRowQueue(self.iperf_args, 'OK', [f'{ue_header}\n{msg}'])
+		else:
+			HTML.CreateHtmlTestRowQueue(self.iperf_args, 'KO', [f'{ue_header}\n{msg}'])
+			self.AutoTerminateUEandeNB(HTML,RAN,EPC,CONTAINERS)
+
 	def AnalyzeLogFile_UE(self, UElogFile,HTML,RAN):
 		if (not os.path.isfile(f'./{UElogFile}')):
 			return -1
