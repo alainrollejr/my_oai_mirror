@@ -26,8 +26,8 @@
 #include "PHY/defs_gNB.h"
 #include "PHY/NR_REFSIG/nr_refsig.h"
 #include "PHY/INIT/nr_phy_init.h"
+#include "PHY/CODING/nrLDPC_coding_interface.h"
 #include "PHY/CODING/nrPolar_tools/nr_polar_pbch_defs.h"
-#include "PHY/CODING/nr_ulsch_decoding_interface.h"
 #include "PHY/NR_TRANSPORT/nr_transport_proto.h"
 #include "PHY/NR_TRANSPORT/nr_transport_common_proto.h"
 #include "PHY/NR_ESTIMATION/nr_ul_estimation.h"
@@ -105,7 +105,7 @@ void reset_active_stats(PHY_VARS_gNB *gNB, int frame)
 
 // A global var to reduce the changes size
 ldpc_interface_t ldpc_interface = {0}, ldpc_interface_offload = {0};
-nr_ulsch_decoding_interface_t nr_ulsch_decoding_interface = {0};
+nrLDPC_coding_interface_t nrLDPC_coding_interface = {0};
 
 int phy_init_nr_gNB(PHY_VARS_gNB *gNB)
 {
@@ -134,10 +134,10 @@ int phy_init_nr_gNB(PHY_VARS_gNB *gNB)
 
   nr_init_fde(); // Init array for frequency equalization of transform precoding of PUSCH
 
-  gNB->nr_ulsch_decoding_interface_flag = 0;
-  int ret_loader = load_nr_ulsch_decoding_interface(NULL, &nr_ulsch_decoding_interface);
+  gNB->nrLDPC_coding_interface_flag = 0;
+  int ret_loader = load_nrLDPC_coding_interface(NULL, &nrLDPC_coding_interface);
   if (ret_loader >= 0) {
-    gNB->nr_ulsch_decoding_interface_flag = 1;
+    gNB->nrLDPC_coding_interface_flag = 1;
     load_LDPClib("", &ldpc_interface);
   } else {
     load_LDPClib(NULL, &ldpc_interface);
