@@ -27,4 +27,33 @@
 typedef enum { RC_SM_RRC_CONNECTED, RC_SM_RRC_INACTIVE, RC_SM_RRC_IDLE, RC_SM_RRC_ANY } rc_sm_rrc_state_e;
 void signal_rrc_state_changed_to(const gNB_RRC_UE_t *rrc_ue_context, const rc_sm_rrc_state_e rrc_state);
 
+typedef enum {
+  RRC_SETUP_COMPLETE_MSG,
+  XN_NG_HANDOVER_REQUEST,  // not supported in OAI
+  F1_UE_CONTEXT_SETUP_REQUEST,
+
+  END_EVENT_TRIGGER_MSG,
+} message_type_e;
+
+typedef enum{
+  RRC_MEASUREMENT_REPORT,
+
+  END_SUPPORTED_UL_DCCH_RRC_MSG_ID
+
+} supported_ul_dcch_rrc_msg_id_e; 
+
+typedef enum {
+  Mobility_Management_7_3_3 = 3,
+} call_process_breakpoint_e;
+
+
+typedef enum {
+  Handover_Preparation_7_3_3 = 1,
+} call_breakpoint_e;
+void signal_ue_id_to_ric(const gNB_RRC_UE_t *rrc_ue_context, const message_type_e type);
+
+void signal_rrc_msg_to_ric(byte_array_t rrc_ba, supported_ul_dcch_rrc_msg_id_e type);
+
+void create_indication_for_handover(uint64_t nr_cellid);
+
 #endif

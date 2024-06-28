@@ -1560,6 +1560,11 @@ static int handle_rrcSetupComplete(const protocol_ctxt_t *const ctxt_pP,
 
   rrc_gNB_process_RRCSetupComplete(ctxt_pP, ue_context_p, setup_complete->criticalExtensions.choice.rrcSetupComplete);
   LOG_I(NR_RRC, PROTOCOL_NR_RRC_CTXT_UE_FMT " UE State = NR_RRC_CONNECTED \n", PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP));
+
+#ifdef E2_AGENT
+  signal_ue_id_to_ric(UE, RRC_SETUP_COMPLETE_MSG);
+#endif
+
   return 0;
 }
 
@@ -1675,6 +1680,14 @@ int rrc_gNB_decode_dcch(const protocol_ctxt_t *const ctxt_pP,
                   && ul_dcch_msg->message.present == NR_UL_DCCH_MessageType_PR_c1
                   && ul_dcch_msg->message.choice.c1
                   && ul_dcch_msg->message.choice.c1->present == NR_UL_DCCH_MessageType__c1_PR_measurementReport);
+          
+        #ifdef E2_AGENT
+          byte_array_t buffer_ba = {.len = sdu_sizeP};
+          buffer_ba.buf = calloc(sdu_sizeP,sizeof(uint8_t));
+          assert(buffer_ba.buf != NULL && "Memory exhausted");
+          memcpy(buffer_ba.buf, Rx_sdu, sdu_sizeP);
+          signal_rrc_msg_to_ric(buffer_ba, RRC_MEASUREMENT_REPORT);
+        #endif
         rrc_gNB_process_MeasurementReport(ue_context_p, ul_dcch_msg->message.choice.c1->choice.measurementReport);
         break;
 
@@ -2544,6 +2557,10 @@ void rrc_gNB_generate_SecurityModeCommand(const protocol_ctxt_t *const ctxt_pP, 
 
   gNB_RRC_INST *rrc = RC.nrrrc[ctxt_pP->module_id];
   nr_rrc_transfer_protected_rrc_message(rrc, ue_p, DCCH, buffer, size);
+  
+  #ifdef E2_AGENT
+   signal_ue_id_to_ric(ue_p, F1_UE_CONTEXT_SETUP_REQUEST);
+  #endif
 }
 
 void
