@@ -1256,7 +1256,7 @@ int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
                                 unsigned short bwp_start_subcarrier,
                                 unsigned short nb_rb_pdsch,
                                 uint32_t pdsch_est_size,
-                                c16_t dl_ch_estimates[][pdsch_est_size],
+                                c16_t dl_ch_estimates[][ue->frame_parms.nb_antennas_rx][pdsch_est_size],
                                 int rxdataFsize,
                                 c16_t rxdataF[][rxdataFsize],
                                 uint32_t *nvar)
@@ -1305,7 +1305,7 @@ int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
 #endif
 
     c16_t *rxF = &rxdataF[aarx][symbol_offset + delta];
-    c16_t *dl_ch = &dl_ch_estimates[nl * ue->frame_parms.nb_antennas_rx + aarx][ch_offset];
+    c16_t *dl_ch = &dl_ch_estimates[nl][aarx][ch_offset];
     memset(dl_ch, 0, sizeof(*dl_ch) * symbolSz);
 
     if (config_type == NFAPI_NR_DMRS_TYPE1 && ue->chest_freq == 0) {
@@ -1349,7 +1349,7 @@ int nr_pdsch_channel_estimation(PHY_VARS_NR_UE *ue,
     }
 
 #ifdef DEBUG_PDSCH
-    dl_ch = &dl_ch_estimates[nl * ue->frame_parms.nb_antennas_rx + aarx][ch_offset];
+    dl_ch = &dl_ch_estimates[nl][aarx][ch_offset];
     for (uint16_t idxP = 0; idxP < ceil((float)nb_rb_pdsch * 12 / 8); idxP++) {
       for (uint8_t idxI = 0; idxI < 8; idxI++) {
         printf("%4d\t%4d\t", dl_ch[idxP * 8 + idxI].r, dl_ch[idxP * 8 + idxI].i);

@@ -303,12 +303,12 @@ void phy_procedures_nrUE_TX(PHY_VARS_NR_UE *ue, const UE_nr_rxtx_proc_t *proc, n
   stop_meas(&ue->phy_proc_tx);
 }
 
-void nr_ue_measurement_procedures(uint16_t l,
-                                  PHY_VARS_NR_UE *ue,
-                                  const UE_nr_rxtx_proc_t *proc,
-                                  NR_UE_DLSCH_t *dlsch,
-                                  uint32_t pdsch_est_size,
-                                  c16_t dl_ch_estimates[][pdsch_est_size])
+static void nr_ue_measurement_procedures(uint16_t l,
+                                         PHY_VARS_NR_UE *ue,
+                                         const UE_nr_rxtx_proc_t *proc,
+                                         NR_UE_DLSCH_t *dlsch,
+                                         uint32_t pdsch_est_size,
+                                         c16_t dl_ch_estimates[][ue->frame_parms.nb_antennas_rx][pdsch_est_size])
 {
   NR_DL_FRAME_PARMS *frame_parms=&ue->frame_parms;
   int nr_slot_rx = proc->nr_slot_rx;
@@ -495,7 +495,7 @@ static int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue,
           dlsch0->Nl);
 
     const uint32_t pdsch_est_size = ((ue->frame_parms.symbols_per_slot * ue->frame_parms.ofdm_symbol_size + 15) / 16) * 16;
-    __attribute__((aligned(32))) c16_t pdsch_dl_ch_estimates[ue->frame_parms.nb_antennas_rx * dlsch0->Nl][pdsch_est_size];
+    __attribute__((aligned(32))) c16_t pdsch_dl_ch_estimates[dlsch0->Nl][ue->frame_parms.nb_antennas_rx][pdsch_est_size];
     memset(pdsch_dl_ch_estimates, 0, sizeof(pdsch_dl_ch_estimates));
 
     c16_t ptrs_phase_per_slot[ue->frame_parms.nb_antennas_rx][NR_SYMBOLS_PER_SLOT];
@@ -596,6 +596,7 @@ static int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue,
                       first_symbol_flag,
                       harq_pid,
                       pdsch_est_size,
+                      ue->frame_parms.nb_antennas_rx,
                       pdsch_dl_ch_estimates,
                       llr,
                       dl_valid_re,
@@ -603,7 +604,6 @@ static int nr_ue_pdsch_procedures(PHY_VARS_NR_UE *ue,
                       llr_offset,
                       &log2_maxh,
                       rx_size_symbol,
-                      ue->frame_parms.nb_antennas_rx,
                       rxdataF_comp,
                       ptrs_phase_per_slot,
                       ptrs_re_per_slot,
