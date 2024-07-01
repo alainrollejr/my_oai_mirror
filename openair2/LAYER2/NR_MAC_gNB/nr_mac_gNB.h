@@ -760,6 +760,7 @@ typedef struct tdd_bitmap {
 } tdd_bitmap_t;
 typedef struct tdd_config_t {
   tdd_bitmap_t tdd_slot_bitmap[64];
+  int8_t tdd_numb_slots_frame;
   int8_t tdd_numb_slots_period;
   int8_t tdd_numb_period_frame;
   uint8_t num_dl_slots;

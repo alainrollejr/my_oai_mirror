@@ -380,12 +380,13 @@ static int get_tdd_period(NR_TDD_UL_DL_ConfigCommon_t *tdd, nfapi_nr_config_requ
 static int set_tdd_config_nr_new(nfapi_nr_config_request_scf_t *cfg, int mu, tdd_config_t *tdd_config)
 {
   int slot_number = 0;
-  int nb_slots_to_set = TDD_CONFIG_NB_FRAMES * (1 << mu) * NR_NUMBER_OF_SUBFRAMES_PER_FRAME;
+  tdd_config->tdd_numb_slots_frame = TDD_CONFIG_NB_FRAMES * (1 << mu) * NR_NUMBER_OF_SUBFRAMES_PER_FRAME;
+  int nb_slots_to_set = tdd_config->tdd_numb_slots_frame;
   tdd_config->tdd_numb_period_frame = get_nb_periods_per_frame(cfg->tdd_table.tdd_period.value);
   int slot_index = 0;
   tdd_config->tdd_numb_slots_period = ((1 << mu) * NR_NUMBER_OF_SUBFRAMES_PER_FRAME) / tdd_config->tdd_numb_period_frame;
 
-  int nb_slots_per_period = ((1 << mu) * NR_NUMBER_OF_SUBFRAMES_PER_FRAME) / tdd_config->tdd_numb_period_frame;
+  int nb_slots_per_period = tdd_config->tdd_numb_slots_period;
 
   cfg->tdd_table.max_tdd_periodicity_list = calloc(nb_slots_to_set, sizeof(nfapi_nr_max_tdd_periodicity_t));
 
