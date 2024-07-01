@@ -35,6 +35,7 @@
 #include "common/utils/assertions.h"
 #include "nr_common.h"
 #include <complex.h>
+#include "common/ran_context.h"
 
 const char *duplex_mode[]={"FDD","TDD"};
 
