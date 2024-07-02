@@ -817,10 +817,11 @@ class OaiCiTest():
 		ue_header = f'UE {ue.getName()} ({ueIP})'
 
 		if svr.getName() == "rfsim4g_enb_fembms":
-			with cls_cmd.getConnection(ue.getHost()) as cmd_ue, cls_cmd.getConnection(EPC.IPAddress) as cmd_svr:
+			with cls_cmd.getConnection(ue.getHost()) as cmd_ue, cls_cmd.getConnection(svr.getHost()) as cmd_svr:
 				port = 5002 + idx
 				cmd_ue.run(f'{ue.getCmdPrefix()} iperf -B {ueIP} -s -u -i1 >> {server_filename} &', timeout=iperf_time*1.5)
 				cmd_svr.run(f'{svr.getCmdPrefix()} iperf -c {ueIP} -B {svrIP} {iperf_opt} -i1 2>&1 | tee {client_filename}', timeout=iperf_time*2.5)
+				cmd_ue.run(f'mkdir -p {logPath}')
 				cmd_ue.run(f'cp {client_filename} {logPath}/{client_filename}')
 				cmd_ue.run(f'cp {server_filename} {logPath}/{server_filename}')
 				status, msg = Iperf_analyzeV2UDP(server_filename, self.iperf_bitrate_threshold, self.iperf_packetloss_threshold, target_bitrate)
