@@ -305,6 +305,8 @@ typedef struct openair0_config {
   gpio_control_t gpio_controller;
   //! this interface is reused for split 7, so split 7 options provided below
   split7_config_t split7;
+  // max rx gain
+  double max_rx_gain;
 } openair0_config_t;
 
 /*! \brief RF mapping */

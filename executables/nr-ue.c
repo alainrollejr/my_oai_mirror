@@ -350,10 +350,28 @@ typedef struct {
   int rx_offset;
 } syncData_t;
 
+static void nr_ue_adjust_rx_gain(PHY_VARS_NR_UE *UE)
+{
+  openair0_config_t *openair0_cfg_ptr = &openair0_cfg[UE->rf_map.card];
+  int gain = openair0_cfg_ptr->rx_gain[0] - openair0_cfg_ptr->rx_gain_offset[0];
+
+  // Increase the RX gain by the value determined by adjust_rxgain
+  if ((gain + UE->adjust_rxgain) <= openair0_cfg_ptr->max_rx_gain) {
+    openair0_cfg_ptr->rx_gain[0] += UE->adjust_rxgain;
+  } else {
+    // apply USRP MAX RX gain
+    openair0_cfg_ptr->rx_gain[0] = openair0_cfg_ptr->max_rx_gain - openair0_cfg_ptr->rx_gain_offset[0];
+  }
+
+  // Set new RX gain.
+  UE->rfdevice.trx_set_gains_func(&UE->rfdevice, openair0_cfg_ptr);
+}
+
 static void UE_synch(void *arg) {
   syncData_t *syncD = (syncData_t *)arg;
   PHY_VARS_NR_UE *UE = syncD->UE;
   UE->is_synchronized = 0;
+  openair0_config_t *openair0_cfg_ptr = &openair0_cfg[UE->rf_map.card];
 
   if (UE->target_Nid_cell != -1) {
     LOG_W(NR_PHY, "Starting re-sync detection for target Nid_cell %i\n", UE->target_Nid_cell);
@@ -385,18 +403,45 @@ static void UE_synch(void *arg) {
 
     // rerun with new cell parameters and frequency-offset
     // todo: the freq_offset computed on DL shall be scaled before being applied to UL
-    nr_rf_card_config_freq(&openair0_cfg[UE->rf_map.card], ul_carrier, dl_carrier, freq_offset);
+    nr_rf_card_config_freq(openair0_cfg_ptr, ul_carrier, dl_carrier, freq_offset);
+
+    if (get_nrUE_params()->agc) {
+      nr_ue_adjust_rx_gain(UE);
+
+      LOG_I(PHY, "Got synch: adjusted rxgain %d dB, (max %f dB) \n", UE->adjust_rxgain, openair0_cfg_ptr->max_rx_gain);
+    }
 
     LOG_I(PHY,
           "Got synch: hw_slot_offset %d, carrier off %d Hz, rxgain %f (DL %f Hz, UL %f Hz)\n",
           hw_slot_offset,
           freq_offset,
-          openair0_cfg[UE->rf_map.card].rx_gain[0],
-          openair0_cfg[UE->rf_map.card].rx_freq[0],
-          openair0_cfg[UE->rf_map.card].tx_freq[0]);
+          openair0_cfg_ptr->rx_gain[0] - openair0_cfg_ptr->rx_gain_offset[0],
+          openair0_cfg_ptr->rx_freq[0],
+          openair0_cfg_ptr->tx_freq[0]);
 
-    UE->rfdevice.trx_set_freq_func(&UE->rfdevice, &openair0_cfg[0]);
+    UE->rfdevice.trx_set_freq_func(&UE->rfdevice, openair0_cfg_ptr);
     UE->is_synchronized = 1;
+  } else {
+    int applied_rxgain = openair0_cfg_ptr->rx_gain[0] - openair0_cfg_ptr->rx_gain_offset[0];
+    int max_rxgain = openair0_cfg_ptr->max_rx_gain;
+
+    bool sync_retry = (get_nrUE_params()->agc && applied_rxgain < max_rxgain) ? true : false;
+
+    if (sync_retry) {
+      // Search will be done by increasing rxgain
+      UE->adjust_rxgain = INCREASE_IN_RXGAIN;
+      nr_ue_adjust_rx_gain(UE);
+
+      applied_rxgain = openair0_cfg_ptr->rx_gain[0] - openair0_cfg_ptr->rx_gain_offset[0];
+
+      LOG_I(PHY,
+            "synch retry: with higher rxgain %d dB, increased by %d dB, (max %d dB) \n",
+            applied_rxgain,
+            UE->adjust_rxgain,
+            max_rxgain);
+    } else {
+      LOG_E(PHY, "synch Failed: rx gain tried %d dB, (max %d dB) \n", applied_rxgain, max_rxgain);
+    }
   }
 }
 
