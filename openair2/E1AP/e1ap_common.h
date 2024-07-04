@@ -23,7 +23,6 @@
 
 #ifndef E1AP_COMMON_H_
 #define E1AP_COMMON_H_
-#define _GNU_SOURCE
 #include "openair2/COMMON/e1ap_messages_types.h"
 #include "openair2/COMMON/sctp_messages_types.h"
 #include "common/ngran_types.h"

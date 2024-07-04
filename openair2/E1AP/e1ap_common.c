@@ -21,6 +21,7 @@
  *      contact@openairinterface.org
  */
 
+#define _GNU_SOURCE
 #include <time.h>
 #include <stdlib.h>
 #include "e1ap_common.h"
