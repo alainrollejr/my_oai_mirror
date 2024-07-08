@@ -38,6 +38,7 @@
 #include "PHY/defs_nr_UE.h"
 #include "PHY/phy_vars_nr_ue.h"
 #include "PHY/types.h"
+#include "PHY/CODING/nrLDPC_coding_interface.h"
 #include "PHY/INIT/nr_phy_init.h"
 #include "PHY/MODULATION/modulation_eNB.h"
 #include "PHY/MODULATION/nr_modulation.h"
@@ -1326,6 +1327,9 @@ int main(int argc, char **argv)
 
   if (gNB->ldpc_offload_flag)
     free_LDPClib(&ldpc_interface_offload);
+
+  if (gNB->nrLDPC_coding_interface_flag)
+    free_nrLDPC_coding_interface(&nrLDPC_coding_interface);
 
   if (output_fd)
     fclose(output_fd);
