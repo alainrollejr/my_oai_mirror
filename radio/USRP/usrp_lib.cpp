@@ -1438,11 +1438,15 @@ extern "C" {
                    gain - gain_range.stop());
                gain=gain_range.stop();
       }
-
+      openair0_cfg[0].max_rx_gain = gain_range.stop();
       s->usrp->set_rx_gain(gain,i+choffset);
-      LOG_I(HW,"RX Gain %d %f (%f) => %f (max %f)\n",i,
-            openair0_cfg[0].rx_gain[i],openair0_cfg[0].rx_gain_offset[i],
-            openair0_cfg[0].rx_gain[i]-openair0_cfg[0].rx_gain_offset[i],gain_range.stop());
+      LOG_I(HW,
+            "RX Gain %d %f (%f) => %f (max %f)\n",
+            i,
+            openair0_cfg[0].rx_gain[i],
+            openair0_cfg[0].rx_gain_offset[i],
+            openair0_cfg[0].rx_gain[i] - openair0_cfg[0].rx_gain_offset[i],
+            openair0_cfg[0].max_rx_gain);
     }
   }
 
